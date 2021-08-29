@@ -33,8 +33,8 @@ extension ViewController: UICollectionViewDataSource {
         cell.currentIndexPath = indexPath
         
         let cellSize = self.collectionView(collectionView, layout: collectionView.collectionViewLayout, sizeForItemAt: indexPath)
-        themeManager.fetchImage(atIndex: indexPath.item, resizedTo: cellSize) { [cell] image, itemIndex in
-            guard let image = image else { return }
+        themeManager.fetchImage(atIndex: indexPath.item, resizedTo: cellSize) { [weak cell] image, itemIndex in
+            guard let cell = cell, let image = image else { return }
             DispatchQueue.main.async {
                 guard let cellIndexPath = cell.currentIndexPath, cellIndexPath.item == itemIndex else {
                     print("⚠️ Discarding fetched image for item \(itemIndex) because the cell is no longer being used for that index path")
@@ -124,7 +124,10 @@ final class ThemeManager {
         
         // Recommendation #3: Make image loading asynchronous, moving the work off the main queue.
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self else { return }
+            guard let self = self else {
+                completion(nil, index)
+                return
+            }
             guard let image = UIImage(named: String(imageKey)) else {
                 assertionFailure("Image is missing from the asset catalog")
                 completion(nil, index)
